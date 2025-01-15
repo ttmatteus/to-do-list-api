@@ -8,4 +8,8 @@ export class UpdateTodoDto {
   @IsOptional()
   @IsBoolean()
   isCompleted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
