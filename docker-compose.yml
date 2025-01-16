@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: tasklist
+    environment:
+      POSTGRES_USER: casco
+      POSTGRES_PASSWORD: '123teste'
+      POSTGRES_DB: tkdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
+    driver: local
