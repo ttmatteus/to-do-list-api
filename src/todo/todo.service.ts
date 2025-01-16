@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './entities/todo.entity';
 import { Repository } from 'typeorm';
@@ -14,6 +14,16 @@ export class Taskservice {
 
   // Criar tarefa
   async createTask(createTodoDto: CreateTodoDto): Promise<Task> {
+    const { title } = createTodoDto;
+
+    const existingTask = await this.taskRepository.findOne({
+      where: { title },
+    });
+
+    if ( existingTask) {
+      throw new ConflictException('A task with this title already exists');
+    }
+
     const task = this.taskRepository.create(createTodoDto);
     return this.taskRepository.save(task);
   }
