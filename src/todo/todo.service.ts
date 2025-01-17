@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './entities/todo.entity';
 import { Repository } from 'typeorm';
@@ -14,37 +14,70 @@ export class Taskservice {
 
   // Criar tarefa
   async createTask(createTodoDto: CreateTodoDto): Promise<Task> {
-    const task = this.taskRepository.create(createTodoDto);
-    return this.taskRepository.save(task);
+    const { title } = createTodoDto;
+
+    const existingTask = await this.taskRepository.findOne({
+      where: { title },
+    });
+
+    if ( existingTask) {
+      throw new ConflictException('A task with this title already exists. Please choose a different title.');
+    }
+
+    try {
+      const task = this.taskRepository.create(createTodoDto);
+      return this.taskRepository.save(task);
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while creating the task. Please try again later.');
+    }
   }
 
   // Pegar todas as tarefas
   async getTasks(): Promise<Task[]> {
-    return this.taskRepository.find(); 
+    try {
+      return await this.taskRepository.find();
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while retrieving task. Please try again later.');
+    }
   }
 
   async updateTask(id: number, updateTodoDto: UpdateTodoDto): Promise<Task> {
-    const task = await this.taskRepository.findOne({
-        where: { id },
-    });
-    if (!task) {
-        throw new NotFoundException('Task not found')
+    let task;
+    try {
+      task = await this.taskRepository.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while retrieving the task. Please try again later.')
     }
 
-    Object.assign(task, updateTodoDto);
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found.`);
+    }
 
-    return this.taskRepository.save(task)
+    try {
+      Object.assign(task, updateTodoDto);
+      return await this.taskRepository.save(task);
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while updating the task. Please try again later.')
+    }
   }
 
   // Deletar tarefa
   async deleteTask(id: number): Promise<void> {
-    const task = await this.taskRepository.findOne({
-      where: { id },
-    });
-    if (!task) {
-      throw new NotFoundException('Task not found');
+    let task;
+    try {
+      task = await this.taskRepository.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while retrieving the task. Please try again later.');
     }
 
-    await this.taskRepository.remove(task);
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found.`);
+    }
+
+    try {
+      await this.taskRepository.remove(task);
+    } catch (error) {
+      throw new InternalServerErrorException('An error occurred while deleting the task. Please try again later.');
+    }
   }
 }
